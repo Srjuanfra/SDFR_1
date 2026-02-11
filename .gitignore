@@ -39,3 +39,9 @@
 
 # debug information files
 *.dwo
+# =========================
+# ROS 2 / colcon
+# =========================
+build/
+install/
+log/
