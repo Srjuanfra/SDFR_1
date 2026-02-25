@@ -57,24 +57,28 @@ private:
                            msg->step, expected_step);
     }
 
-    // Compute average brightness using approximate luma:
-    // Y = (29*B + 150*G + 77*R) >> 8   (approximation of 0.114, 0.587, 0.299)
-    // This produces Y in range 0..255 without using floats per pixel.
+    // Iterate row by row using msg->step (stride) to skip any padding bytes
+    // that some drivers add at the end of each row.
+    // This ensures we only process valid pixels, not garbage bytes.
     uint64_t sumY = 0;
     uint64_t count = 0;
-
+    
     const uint8_t *ptr = data.data();
-    const size_t total = data.size();
 
-    // Iterate through bytes in triples (B, G, R)
-    for (size_t i = 0; i + 2 < total; i += 3) {
-      const uint32_t B = ptr[i + 0];
-      const uint32_t G = ptr[i + 1];
-      const uint32_t R = ptr[i + 2];
-      const uint32_t Y = (29u * B + 150u * G + 77u * R) >> 8;
-      sumY += Y;
-      count++;
+    for (uint32_t row = 0; row < msg->height; ++row) {
+        const uint8_t *row_ptr = ptr + row * msg->step;
+        for (uint32_t col = 0; col < msg->width; ++col) {
+            const uint8_t *px = row_ptr + col * 3;
+            const uint32_t B = px[0];
+            const uint32_t G = px[1];
+            const uint32_t R = px[2];
+            const uint32_t Y = (29u * B + 150u * G + 77u * R) >> 8;
+            sumY += Y;
+        }
     }
+    // count is simply width * height, no need to accumulate it in the loop
+    count = msg->width * msg->height;
+
 
     if (count == 0) return;
 
