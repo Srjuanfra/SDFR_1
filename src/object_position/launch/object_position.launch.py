@@ -32,13 +32,13 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'image_topic': '/image',
-                'hue_min':      35.0,   # green ball ~40-80 deg, adjust to your ball
-                'hue_max':      85.0,
-                'sat_min':       0.4,   # rejects grey/white pixels
-                'sat_max':       1.0,
-                'val_min':       0.2,   # rejects very dark pixels
-                'val_max':       1.0,
-                'min_pixels':   20,     # noise filter
+                'hue_min':  140.0,
+                'hue_max':  170.0,
+                'sat_min':    0.5,
+                'sat_max':    1.0,
+                'val_min':    0.2,
+                'val_max':    0.7,
+                'min_pixels': 20,
             }],
         ),
     ])
