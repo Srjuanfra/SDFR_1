@@ -60,7 +60,7 @@ static inline HSV bgr_to_hsv(uint8_t b, uint8_t g, uint8_t r)
 //
 // Parameters (all settable at launch and at runtime via ros2 param set):
 //   image_topic   (string,  default "/image")
-//   hue_min       (double,  default  35.0)   — green ball ~40-80°
+//   hue_min       (double,  default  35.0)   — green ball 
 //   hue_max       (double,  default  85.0)
 //   sat_min       (double,  default   0.4)   — reject grey/white
 //   sat_max       (double,  default   1.0)
@@ -77,10 +77,10 @@ public:
     declare_parameter<std::string>("image_topic", "/image");
     declare_parameter<double>("hue_min",   35.0);
     declare_parameter<double>("hue_max",   85.0);
-    declare_parameter<double>("sat_min",    0.4);
-    declare_parameter<double>("sat_max",    1.0);
-    declare_parameter<double>("val_min",    0.2);
-    declare_parameter<double>("val_max",    1.0);
+    declare_parameter<double>("sat_min",    0.4);//This values are default they are use
+    declare_parameter<double>("sat_max",    1.0);//if the launch.py file is not used, in that
+    declare_parameter<double>("val_min",    0.2);//file we set values according to the light of
+    declare_parameter<double>("val_max",    1.0);//the enviroment that we are. 
     declare_parameter<int>("min_pixels",   20);
 
     load_parameters();
