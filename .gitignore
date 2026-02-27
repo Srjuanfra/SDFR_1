@@ -47,3 +47,5 @@ install/
 log/
 *:Zone.Identifier
 .vscode/
+follower_data.csv
+sequence_data.csv
