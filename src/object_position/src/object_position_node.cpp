@@ -28,11 +28,11 @@ static inline HSV bgr_to_hsv(uint8_t b, uint8_t g, uint8_t r)
 
   HSV out{0.0f, 0.0f, cmax};
 
-  if (cmax < 1e-6f) return out;          // black pixel, S = H = 0
+  if (cmax < 1e-6f) return out;
 
   out.s = diff / cmax;
 
-  if (diff < 1e-6f) return out;          // grey pixel, H = 0
+  if (diff < 1e-6f) return out;
 
   if (cmax == rf)
     out.h = 60.0f * std::fmod((gf - bf) / diff, 6.0f);
@@ -57,16 +57,17 @@ static inline HSV bgr_to_hsv(uint8_t b, uint8_t g, uint8_t r)
 // Published topics:
 //   /object/position  (geometry_msgs/Point)  — CoG in pixel coordinates
 //   /object/found     (std_msgs/Bool)         — true if object detected
+//   /object/mask      (sensor_msgs/Image)     — binary mask: white=match, black=no match
 //
 // Parameters (all settable at launch and at runtime via ros2 param set):
 //   image_topic   (string,  default "/image")
-//   hue_min       (double,  default  35.0)   — green ball 
+//   hue_min       (double,  default  35.0)
 //   hue_max       (double,  default  85.0)
-//   sat_min       (double,  default   0.4)   — reject grey/white
+//   sat_min       (double,  default   0.4)
 //   sat_max       (double,  default   1.0)
-//   val_min       (double,  default   0.2)   — reject very dark pixels
+//   val_min       (double,  default   0.2)
 //   val_max       (double,  default   1.0)
-//   min_pixels    (int,     default  20)     — CoG not published below this
+//   min_pixels    (int,     default  20)
 // ---------------------------------------------------------------------------
 class ObjectPositionNode : public rclcpp::Node
 {
@@ -77,10 +78,10 @@ public:
     declare_parameter<std::string>("image_topic", "/image");
     declare_parameter<double>("hue_min",   35.0);
     declare_parameter<double>("hue_max",   85.0);
-    declare_parameter<double>("sat_min",    0.4);//This values are default they are use
-    declare_parameter<double>("sat_max",    1.0);//if the launch.py file is not used, in that
-    declare_parameter<double>("val_min",    0.2);//file we set values according to the light of
-    declare_parameter<double>("val_max",    1.0);//the enviroment that we are. 
+    declare_parameter<double>("sat_min",    0.4);
+    declare_parameter<double>("sat_max",    1.0);
+    declare_parameter<double>("val_min",    0.2);
+    declare_parameter<double>("val_max",    1.0);
     declare_parameter<int>("min_pixels",   20);
 
     load_parameters();
@@ -88,6 +89,7 @@ public:
     // ---- publishers --------------------------------------------------------
     pos_pub_   = create_publisher<geometry_msgs::msg::Point>("/object/position", 10);
     found_pub_ = create_publisher<std_msgs::msg::Bool>("/object/found", 10);
+    mask_pub_  = create_publisher<sensor_msgs::msg::Image>("/object/mask", 10);
 
     // ---- subscriber --------------------------------------------------------
     sub_ = create_subscription<sensor_msgs::msg::Image>(
@@ -98,12 +100,12 @@ public:
     param_cb_ = add_on_set_parameters_callback(
       [this](const std::vector<rclcpp::Parameter> &params) {
         for (const auto &p : params) {
-          if      (p.get_name() == "hue_min")    hue_min_  = p.as_double();
-          else if (p.get_name() == "hue_max")    hue_max_  = p.as_double();
-          else if (p.get_name() == "sat_min")    sat_min_  = p.as_double();
-          else if (p.get_name() == "sat_max")    sat_max_  = p.as_double();
-          else if (p.get_name() == "val_min")    val_min_  = p.as_double();
-          else if (p.get_name() == "val_max")    val_max_  = p.as_double();
+          if      (p.get_name() == "hue_min")    hue_min_    = p.as_double();
+          else if (p.get_name() == "hue_max")    hue_max_    = p.as_double();
+          else if (p.get_name() == "sat_min")    sat_min_    = p.as_double();
+          else if (p.get_name() == "sat_max")    sat_max_    = p.as_double();
+          else if (p.get_name() == "val_min")    val_min_    = p.as_double();
+          else if (p.get_name() == "val_max")    val_max_    = p.as_double();
           else if (p.get_name() == "min_pixels") min_pixels_ = p.as_int();
         }
         rcl_interfaces::msg::SetParametersResult result;
@@ -149,20 +151,25 @@ private:
     const uint8_t *ptr = msg->data.data();
 
     // Accumulators for centre of gravity
-    // Using double to avoid overflow on large images
-    double sum_x  = 0.0;
-    double sum_y  = 0.0;
+    double   sum_x = 0.0;
+    double   sum_y = 0.0;
     uint64_t count = 0;
 
-    // Iterate row by row using msg->step (stride) to skip any padding bytes
-    // that some drivers add at the end of each row.
+    // Build binary mask image (mono8: 255 = match, 0 = no match)
+    sensor_msgs::msg::Image mask_msg;
+    mask_msg.header   = msg->header;
+    mask_msg.height   = msg->height;
+    mask_msg.width    = msg->width;
+    mask_msg.encoding = "mono8";
+    mask_msg.step     = msg->width;        // 1 byte per pixel, no padding
+    mask_msg.data.resize(msg->height * msg->width, 0);
+
     for (uint32_t row = 0; row < msg->height; ++row) {
       const uint8_t *row_ptr = ptr + row * msg->step;
       for (uint32_t col = 0; col < msg->width; ++col) {
-        const uint8_t *px = row_ptr + col * 3;
-        const HSV hsv = bgr_to_hsv(px[0], px[1], px[2]);
+        const uint8_t *px  = row_ptr + col * 3;
+        const HSV      hsv = bgr_to_hsv(px[0], px[1], px[2]);
 
-        // Check if pixel is within HSV thresholds
         const bool in_hue = (hsv.h >= static_cast<float>(hue_min_)) &&
                             (hsv.h <= static_cast<float>(hue_max_));
         const bool in_sat = (hsv.s >= static_cast<float>(sat_min_)) &&
@@ -171,8 +178,7 @@ private:
                             (hsv.v <= static_cast<float>(val_max_));
 
         if (in_hue && in_sat && in_val) {
-          // Centre of gravity: sum pixel coordinates
-          // CoG_x = Σ(col) / N,  CoG_y = Σ(row) / N
+          mask_msg.data[row * msg->width + col] = 255;  // white pixel in mask
           sum_x += col;
           sum_y += row;
           ++count;
@@ -180,7 +186,9 @@ private:
       }
     }
 
-    // Require a minimum number of matching pixels to avoid noise
+    // Always publish the mask so it can be viewed in rqt_image_view
+    mask_pub_->publish(mask_msg);
+
     if (count < static_cast<uint64_t>(min_pixels_)) {
       publish_not_found();
       return;
@@ -219,6 +227,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_;
   rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr  pos_pub_;
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr        found_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr    mask_pub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_;
 };
 

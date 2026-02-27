@@ -4,14 +4,13 @@
 
 ```bash
 ros2 launch object_position object_position.launch.py
-```
 
 ## Change Parameters at Runtime
 
 ```bash
-ros2 param set /object_position hue_min 140.0
-ros2 param set /object_position hue_max 170.0
-ros2 param set /object_position sat_min 0.5
+ros2 param set /object_position hue_min 75.0
+ros2 param set /object_position hue_max 105.0
+ros2 param set /object_position sat_min 0.3
 ros2 param set /object_position val_min 0.2
 ```
 
