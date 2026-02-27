@@ -1,16 +1,28 @@
-Luanch the nodes: 
+# Object Position Node
 
+## Launch
+
+```bash
 ros2 launch object_position object_position.launch.py
+```
 
-Change parameters in the runtime:
+## Change Parameters at Runtime
 
-ros2 param set /object_position hue_min 40.0
+```bash
+ros2 param set /object_position hue_min 140.0
+ros2 param set /object_position hue_max 170.0
+ros2 param set /object_position sat_min 0.5
+ros2 param set /object_position val_min 0.2
+```
 
-To check if there is a object:
+## Check Output
 
+Is the object detected?
+```bash
 ros2 topic echo /object/found
+```
 
-To check the coordinates:
-
+Where is the object? (pixel coordinates)
+```bash
 ros2 topic echo /object/position
-
+```
