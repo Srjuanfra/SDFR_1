@@ -2,7 +2,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <std_msgs/msg/bool.hpp>
-
+#include <std_msgs/msg/int32.hpp>
 #include <cstdint>
 #include <cmath>
 #include <string>
@@ -58,6 +58,7 @@ static inline HSV bgr_to_hsv(uint8_t b, uint8_t g, uint8_t r)
 //   /object/position  (geometry_msgs/Point)  — CoG in pixel coordinates
 //   /object/found     (std_msgs/Bool)         — true if object detected
 //   /object/mask      (sensor_msgs/Image)     — binary mask: white=match, black=no match
+//   /object/area      (std_msgs/Int32)       — number of detected pixels (blob area)
 //
 // Parameters (all settable at launch and at runtime via ros2 param set):
 //   image_topic   (string,  default "/image")
@@ -90,6 +91,7 @@ public:
     pos_pub_   = create_publisher<geometry_msgs::msg::Point>("/object/position", 10);
     found_pub_ = create_publisher<std_msgs::msg::Bool>("/object/found", 10);
     mask_pub_  = create_publisher<sensor_msgs::msg::Image>("/object/mask", 10);
+    area_pub_ = create_publisher<std_msgs::msg::Int32>("/object/area", 10);
 
     // ---- subscriber --------------------------------------------------------
     sub_ = create_subscription<sensor_msgs::msg::Image>(
@@ -204,6 +206,9 @@ private:
     std_msgs::msg::Bool found_msg;
     found_msg.data = true;
     found_pub_->publish(found_msg);
+    std_msgs::msg::Int32 area_msg;
+    area_msg.data = static_cast<int32_t>(count);
+    area_pub_->publish(area_msg);
 
     RCLCPP_DEBUG(get_logger(),
       "Object found at (%.1f, %.1f), pixels=%lu", pos_msg.x, pos_msg.y, count);
@@ -215,6 +220,11 @@ private:
     std_msgs::msg::Bool found_msg;
     found_msg.data = false;
     found_pub_->publish(found_msg);
+    if (area_pub_) {
+      std_msgs::msg::Int32 area_msg;
+      area_msg.data = 0;
+      area_pub_->publish(area_msg);
+    } 
   }
 
   // ---- member variables ---------------------------------------------------
@@ -229,6 +239,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr        found_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr    mask_pub_;
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_cb_;
+  rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr area_pub_;
 };
 
 int main(int argc, char **argv)

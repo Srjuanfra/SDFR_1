@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>closed_loop_follower</name>
+  <version>0.0.1</version>
+  <description>RELbot closed-loop follower using moving camera and Forward Euler integration</description>
+  <maintainer email="todo@todo.com">Group</maintainer>
+  <license>LGPL</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>example_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
