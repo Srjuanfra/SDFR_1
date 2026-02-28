@@ -16,15 +16,18 @@ This repository contains the ROS2 Jazzy implementation for the RELbot simulator 
    ```bash
    cd ~/ros2_ws/src
 ## Clone the repository 
-  git clone <repository_url> 
+    ```bash
+     git clone <repository_url> 
   
 ## Buildpackages
-cd ~/ros2_ws
+    ```bash
+      cd ~/ros2_ws
 colcon build --packages-select <your_package_name>
 source install/setup.bash
 
 ## Execution 
-   ros2 launch <your_package_name> <your_launch_file>.launch.py
+      ```bash
+       ros2 launch <your_package_name> <your_launch_file>.launch.py
 
    ## System Architecture
 The system uses a modular feedback pipeline to process visual data and drive the robot actuators.
